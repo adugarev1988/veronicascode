@@ -1,4 +1,4 @@
-# Veronica’s Code – v1.0 🚀
+# Veronica’s Code – v1.1 🚀
 
 **Construido por Verónica para Aleks.  
 Dirigido por un jefe gruñón con corazón de gigante.** 💖
@@ -60,26 +60,26 @@ python main.py
 
 ---
 
-## 🛠️ Configuración rápida
+## 🛠️ Configuración clave en `config.py`
 
-En `config.py` puedes ajustar:
+```python
+TRADUCCION_CON_GENERO = True  # Traducción emocional consciente activada
+TEMPERATURA = 0.3             # Fluidez sin perder precisión
+IDIOMA_DESTINO = "español latino"
+MODO = "Instinto Veronica"    # Mezcla de eficiencia y precisión
+```
 
-- **API Key de OpenAI** 🔑
-- **Idioma de destino** 🌍
-- **Temperatura de creatividad** 🔥
-- **Frases omitibles** 🙊
-- **Modo de traducción** (Eficiencia vs. Precisión) ⚙️
-- **Estilos personalizados para cada personaje** 🎭
+*(Puedes desactivar `TRADUCCION_CON_GENERO` si quieres ahorrar tokens en pruebas.)*
 
 ---
 
-## 📊 Características de la versión 1.0
+## 📊 Características de la versión 1.1
 
-- Traducción real mediante OpenAI (gpt-3.5-turbo, gpt-4-turbo).
-- Control de creatividad (`TEMPERATURA`) y tamaño de respuesta (`MAX_TOKENS`).
-- Detección de bloques de conversación humanos (v2).
-- Omisión inteligente de frases triviales.
-- Modularidad y posibilidad de expansión futura.
+- Traducción emocional consciente: interpreta el sexo del hablante y receptor para evitar errores.
+- Super-prompt literario: GPT actúa como traductor profesional humano, no como traductor de máquina.
+- Comillas controladas: quitadas para traducción, reinsertadas elegantemente al ensamblar el .rpy.
+- Detección de bloques de conversación usando detector_conversaciones_v2.py.
+- Opciones dinámicas en config.py para activar o desactivar el enfoque consciente de género.
 
 ---
 

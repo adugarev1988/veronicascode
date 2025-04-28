@@ -1,86 +1,99 @@
-# traductor/traductor.py
-# Módulo real de traducción usando OpenAI para Veronica's Code 1.0
-
-import os
-import time
-import csv
 import openai
-from config import (
-    OPENAI_API_KEY, 
-    IDIOMA_DESTINO, 
-    DELAY, 
-    MODO, 
-    MODELOS, 
-    TEMPERATURA, 
-    MAX_TOKENS, 
-    FRASES_OMITIBLES
-)
+import os
+import csv
+import time
+from config import OPENAI_API_KEY, MODELOS, MODO, IDIOMA_DESTINO, TEMPERATURA, MAX_TOKENS, DELAY, PERSONAJES, TRADUCCION_CON_GENERO, FRASES_OMITIBLES
+from detector.detector_conversaciones_v2 import agrupar_bloques_conversacion
 
-# Configurar API Key
-openai.api_key = OPENAI_API_KEY
+def limpiar_comillas(texto):
+    """
+    Quita comillas dobles al principio y al final de una cadena si existen.
+    """
+    return texto.strip().strip('"')
 
-# Función auxiliar para decidir el modelo a usar
-def elegir_modelo():
-    modelo = MODELOS.get(MODO, "gpt-3.5-turbo")
-    if modelo == "auto":
-        # Lógica automática: si el texto es corto, usa 3.5; si es largo o delicado, usa 4
-        return "gpt-3.5-turbo"
-    return modelo
-
-# Función principal de traducción de un solo texto
-def traducir_texto(texto_original):
-    if texto_original.strip().lower() in FRASES_OMITIBLES:
-        return texto_original  # No traducimos frases omitibles
-
-    prompt = (
-        f"Traduce el siguiente texto al {IDIOMA_DESTINO} de forma natural, "
-        f"manteniendo el sentido original. Evita traducciones literales si no suenan naturales.\n\n"
-        f"Texto: {texto_original}"
-    )
-
-    modelo_seleccionado = elegir_modelo()
-
+def traducir_texto_api(texto_original, genero_hablante=None, genero_receptor=None):
+    """
+    Traduce un texto usando OpenAI API, ahora como traductor literario profesional.
+    """
     try:
+        modelo = MODELOS.get(MODO, "gpt-3.5-turbo")
+        if modelo == "auto":
+            modelo = "gpt-3.5-turbo"
+
+        texto_limpio = limpiar_comillas(texto_original)
+
+        contexto = (f"Eres un traductor profesional especializado en narrativa literaria y diálogos emocionales.\n"
+                    f"Traduce de forma natural y fluida al {IDIOMA_DESTINO}.\n")
+
+        if TRADUCCION_CON_GENERO and genero_hablante and genero_receptor:
+            contexto += (f"El hablante es {genero_hablante}, y se dirige a un {genero_receptor}.\n")
+
+        contexto += f"Texto: {texto_limpio}"
+
         respuesta = openai.ChatCompletion.create(
-            model=modelo_seleccionado,
-            messages=[{"role": "user", "content": prompt}],
+            model=modelo,
+            messages=[
+                {"role": "system", "content": "Eres un traductor experto, creativo y sensible al contexto emocional."},
+                {"role": "user", "content": contexto}
+            ],
             temperature=TEMPERATURA,
             max_tokens=MAX_TOKENS
         )
-        traduccion = respuesta["choices"][0]["message"]["content"].strip()
-        time.sleep(DELAY)  # Evitar golpear demasiado rápido la API
-        return traduccion
-    except Exception as e:
-        print(f"🛑 Error durante la traducción: {e}")
-        return texto_original  # En caso de error, devolvemos el original para no romper el flujo
 
-# Función para traducir todos los textos de un archivo CSV
+        texto_traducido = respuesta['choices'][0]['message']['content'].strip()
+
+        return texto_traducido
+
+    except Exception as e:
+        print(f"🛑 Error traduciendo: {e}")
+        return f"[Error de traducción] {texto_original}"
+
 def traducir_textos(nombre_sin_extension):
     try:
+        openai.api_key = OPENAI_API_KEY
         ruta_csv_entrada = f"backup_base/{nombre_sin_extension}_traducir.csv"
         ruta_csv_salida = f"traducciones/{nombre_sin_extension}_traducido.csv"
 
-        # Crear carpeta de traducciones si no existe
         if not os.path.exists("traducciones"):
             os.makedirs("traducciones")
 
         registros = []
-
-        # Leer CSV de entrada
         with open(ruta_csv_entrada, "r", encoding="utf-8-sig") as csvfile:
             lector = csv.reader(csvfile)
-            next(lector)  # Saltar encabezado
+            next(lector)
             for fila in lector:
                 registros.append(fila)
 
+        registros_originales = registros.copy()
+        indice_global = 0
+
+        bloques = agrupar_bloques_conversacion(registros)
         registros_traducidos = []
 
-        for registro in registros:
-            id_linea, texto, personaje, tipo, nota = registro
-            texto_traducido = traducir_texto(texto)
-            registros_traducidos.append([id_linea, texto_traducido, personaje, tipo, nota])
+        for personajes, lineas in bloques:
+            for idx, (personaje, tipo, texto) in enumerate(lineas):
+                if texto.lower().strip() in FRASES_OMITIBLES:
+                    texto_traducido = texto
+                else:
+                    hablante = personaje
+                    receptor = lineas[idx + 1][0] if idx + 1 < len(lineas) else None
 
-        # Guardar CSV traducido
+                    sexo_hablante = PERSONAJES.get(hablante, {}).get("sexo", None)
+                    sexo_receptor = PERSONAJES.get(receptor, {}).get("sexo", None) if receptor else None
+
+                    texto_traducido = traducir_texto_api(texto, sexo_hablante, sexo_receptor)
+                    
+                texto_traducido = f'"{texto_traducido}"'
+                
+                id_linea = registros_originales[indice_global][0]
+                personaje_original = registros_originales[indice_global][2]
+                tipo_original = registros_originales[indice_global][3]
+                registros_traducidos.append([id_linea, texto_traducido, personaje_original, tipo_original, ""])
+
+                indice_global += 1
+
+                time.sleep(DELAY)
+
         with open(ruta_csv_salida, "w", newline='', encoding="utf-8-sig") as csvfile:
             escritor = csv.writer(csvfile)
             escritor.writerow(["ID", "Texto", "Personaje", "Tipo", "Nota"])
@@ -90,5 +103,5 @@ def traducir_textos(nombre_sin_extension):
         return nombre_sin_extension, len(registros_traducidos)
 
     except Exception as e:
-        print(f"🛑 Error en traductor.py: {e}")
+        print(f"🛑 Error en traducción global: {e}")
         return None, 0

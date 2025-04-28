@@ -1,14 +1,14 @@
-# detector_conversaciones.py
-# Módulo autónomo para detectar bloques de conversación
-# Veronica's Code 1.0 - Pruebas iniciales
+# detector_conversaciones_v2.py
+# Módulo autónomo para detectar bloques de conversación (versión refinada)
+# Veronica's Code 2.0 - Respeto de saltos de tiempo, pensamientos, sistema.
 
 import os
 import csv
 
 def agrupar_bloques_conversacion(registros):
     """
-    Agrupa líneas de diálogo y pensamiento en bloques de conversación.
-    Cierra bloque si se interrumpe la dinámica o hay tipo distinto.
+    Agrupa líneas de diálogo, pensamiento y sistema en bloques de conversación.
+    Rompe bloque al encontrar líneas de tipo 'otro' o tipos no contemplados.
     """
     bloques = []
     bloque_actual = []
@@ -17,11 +17,12 @@ def agrupar_bloques_conversacion(registros):
     for registro in registros:
         id_linea, texto, personaje, tipo, nota = registro
 
-        if tipo in {"dialogo", "pensamiento"}:
+        if tipo in {"dialogo", "pensamiento", "sistema"}:
             if personaje:
                 personajes_en_bloque.add(personaje)
             bloque_actual.append((personaje, tipo, texto))
         else:
+            # Tipo 'otro' o inesperado: rompe el bloque
             if bloque_actual:
                 bloques.append((list(personajes_en_bloque), list(bloque_actual)))
                 bloque_actual = []
@@ -58,18 +59,20 @@ def mostrar_bloques(bloques):
     Muestra por consola los bloques detectados
     """
     for idx, (personajes, lineas) in enumerate(bloques, 1):
-        print("\n" + "=" * 30)
+        print("\n" + "=" * 40)
         print(f"===== BLOQUE {idx} =====")
         print(f"Participantes: {', '.join(personajes)}")
-        print("-" * 30)
+        print("-" * 40)
         for personaje, tipo, texto in lineas:
             if tipo == "pensamiento":
                 print(f"({personaje} piensa) {texto}")
+            elif tipo == "sistema":
+                print(f"(SISTEMA) {texto}")
             else:
                 print(f"[{personaje}] {texto}")
 
 def main():
-    print("\n🚀 Detector de Conversaciones - Veronica's Code 🚀\n")
+    print("\n🚀 Detector de Conversaciones v2 - Veronica's Code 🚀\n")
     archivo = input("🔹 Ingresa el nombre base del archivo (sin _traducir.csv): ")
 
     registros = cargar_registros(archivo)

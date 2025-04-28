@@ -1,5 +1,5 @@
 # main.py
-# Lanzador principal de Veronica's Code - Beta 1.1
+# Lanzador principal de Veronica's Code -  v1.1
 # Versión mejorada, lista para extracción con perfiles
 
 from extractor.extractor_unificado_v2 import extraer_textos

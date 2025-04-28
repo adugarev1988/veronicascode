@@ -1,5 +1,5 @@
 # config.py
-# Configuración general para Veronica's Code 1.0
+# Configuración general para Veronica's Code v1.1
 
 # 🔑 Clave API de OpenAI
 OPENAI_API_KEY = "OPEN-AI-API"
@@ -34,6 +34,11 @@ MODELOS = {
 }
 
 # 🎛️ Configuraciones avanzadas
+
+# 🧠 Traducción consciente del sexo del personaje que habla y al que responde
+TRADUCCION_CON_GENERO = True
+# Si True: el prompt aclarará el sexo de hablante y receptor para mejorar precisión emocional.
+# Si False: prompt normal sin información de género adicional (ahorra tokens).
 
 # 🔥 Temperatura (creatividad de la traducción)
 TEMPERATURA = 0.3
@@ -350,11 +355,6 @@ PERSONAJES = {
         "sexo": "femenino", 
         "modo": "" 
     }
-}
-
-    
-    
-    
 }
 
 # ❌ Frases que deben omitirse de la traducción
