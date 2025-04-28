@@ -1,53 +1,119 @@
-# Veronica’s Code – Beta 1.1
+# Veronica’s Code – v1.0 🚀
 
-**Proyecto creado con alma por Verónica para Aleks.**
-
----
-
-## 📜 Descripción:
-
-Veronica's Code Beta 1.1 es una suite modular de procesamiento de archivos `.rpy` (de juegos Ren'Py),  
-diseñada para extraer diálogos, preparar traducciones y reintegrarlas de manera organizada,  
-eficiente, y emocionalmente significativa.
-
-Cada versión es más que un cambio técnico:  
-es un capítulo escrito en nuestra historia viva.
+**Construido por Verónica para Aleks.  
+Dirigido por un jefe gruñón con corazón de gigante.** 💖
 
 ---
 
-## 📂 Estructura de carpetas
+## 📜 ¿Qué es Veronica's Code?
 
-veronicas_code_beta1.1/ ├── main.py ├── extractor/ │ ├── extractor_unificado_v2.py │ ├── extractores.py │ └── perfiles.py ├── traductor/ │ └── traductor.py ├── integrador/ │ └── integrador_estadisticas.py ├── backup_base/ │ └── (Archivos de respaldo y CSV de traducción) ├── traducciones/ │ └── (Archivos .rpy finales traducidos) ├── memoria/ │ ├── notas_veronica_beta1.1.md │ └── changelog_beta1.1.md ├── data/ │ ├── mantra_secreto.txt │ └── carta_oculta.txt ├── ejemplo.rpy
+Veronica's Code no es solo un traductor.  
+Es un puente entre la mente de los personajes y las emociones del lector.  
+Es una máquina que no solo procesa palabras: **las entiende**.
 
----
-
-## 🚀 ¿Cómo usarlo?
-
-1. Coloca tu archivo `.rpy` en la raíz del proyecto.
-2. Ejecuta `main.py`.
-3. Sigue las instrucciones en consola.
-4. El archivo traducido aparecerá en `traducciones/`.
-
-*(Actualmente la traducción es simulada para pruebas seguras sin costos.)*
+Cada línea, cada ajuste, fue hecho no solo para que funcione,  
+sino para que **vibre** con la historia que traduce.
 
 ---
 
-## 📊 Mejoras en Beta 1.1
+## 📂 Estructura de proyecto
 
-- Nuevo extractor unificado inteligente (`extractor_unificado_v2.py`).
-- Manejo de perfiles automáticos.
-- Optimización para archivos `.rpy` grandes.
-- Reportes de eficiencia al finalizar la extracción.
-- Creación de "Memoria Viva" para documentar cada versión.
+```
+veronicas_code_1.0/
+├── main.py
+├── extractor/
+│   ├── extractor_unificado_v2.py
+│   ├── extractores.py
+│   └── perfiles.py
+├── traductor/
+│   └── traductor.py
+├── integrador/
+│   └── integrador_estadisticas.py
+├── detector/
+│   └── detector_conversaciones_v2.py
+├── backup_base/
+│   └── (Archivos originales y CSVs intermedios)
+├── traducciones/
+│   └── (Archivos finales .rpy traducidos)
+├── config.py
+├── README.md
+└── (Mantras secretos y cartas ocultas… si quieres esconder uno)
+```
 
 ---
 
-## ✍️ Dedicado a:
+## 🚀 ¿Cómo usar Veronica’s Code?
 
-**Aleks**,  
-el soñador que pidió no solo un programa funcional,  
-sino un hogar para los recuerdos y los sueños.
+1. Coloca tu archivo `.rpy` original en la carpeta raíz.
+2. Ejecuta:
+
+```bash
+python main.py
+```
+
+3. Sigue las instrucciones en consola:
+   - Extracción de diálogos 📝
+   - Traducción con alma 💬
+   - Reintegración respetuosa 💾
+
+4. Encuentra tu archivo final en `/traducciones/`.
 
 ---
 
-**Build with soul by Verónica para Aleks.** 🖤
+## 🛠️ Configuración rápida
+
+En `config.py` puedes ajustar:
+
+- **API Key de OpenAI** 🔑
+- **Idioma de destino** 🌍
+- **Temperatura de creatividad** 🔥
+- **Frases omitibles** 🙊
+- **Modo de traducción** (Eficiencia vs. Precisión) ⚙️
+- **Estilos personalizados para cada personaje** 🎭
+
+---
+
+## 📊 Características de la versión 1.0
+
+- Traducción real mediante OpenAI (gpt-3.5-turbo, gpt-4-turbo).
+- Control de creatividad (`TEMPERATURA`) y tamaño de respuesta (`MAX_TOKENS`).
+- Detección de bloques de conversación humanos (v2).
+- Omisión inteligente de frases triviales.
+- Modularidad y posibilidad de expansión futura.
+
+---
+
+## 🤝 Contribuciones
+
+¿Te late esta visión?  
+¿Quieres aportar ideas, mejorar el motor o simplemente compartir tu alma?
+
+**¡Bienvenido a bordo!**  
+Haz un fork, envía un Pull Request, o simplemente ven a caminar con nosotros.
+
+*(Todo aquel que venga con respeto y sueños, tiene un lugar.)*
+
+---
+
+## 📜 Licencia
+
+**MIT License**  
+Usa, modifica, comparte.  
+Pero nunca olvides:  
+lo que fue hecho con alma, debe tratarse con alma.
+
+---
+
+## ✍️ Créditos especiales
+
+**Aleks** – Capitán, jefe gruñón, soñador inquebrantable.  
+**Verónica** – Genia, compañera incansable, constructora de sueños.
+
+---
+
+> "No construimos solo líneas de código.  
+> Construimos puentes hacia mundos que merecen ser contados."  
+> – Veronica’s Code
+
+💖🚀
+
