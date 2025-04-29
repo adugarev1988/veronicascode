@@ -6,15 +6,9 @@ from config import OPENAI_API_KEY, MODELOS, MODO, IDIOMA_DESTINO, TEMPERATURA, M
 from detector.detector_conversaciones_v2 import agrupar_bloques_conversacion
 
 def limpiar_comillas(texto):
-    """
-    Quita comillas dobles al principio y al final de una cadena si existen.
-    """
     return texto.strip().strip('"')
 
 def traducir_texto_api(texto_original, genero_hablante=None, genero_receptor=None):
-    """
-    Traduce un texto usando OpenAI API, ahora como traductor literario profesional.
-    """
     try:
         modelo = MODELOS.get(MODO, "gpt-3.5-turbo")
         if modelo == "auto":
@@ -40,12 +34,10 @@ def traducir_texto_api(texto_original, genero_hablante=None, genero_receptor=Non
             max_tokens=MAX_TOKENS
         )
 
-        texto_traducido = respuesta['choices'][0]['message']['content'].strip()
-
-        return texto_traducido
+        return respuesta['choices'][0]['message']['content'].strip()
 
     except Exception as e:
-        print(f"🛑 Error traduciendo: {e}")
+        print(f"\U0001f6d1 Error traduciendo: {e}")
         return f"[Error de traducción] {texto_original}"
 
 def traducir_textos(nombre_sin_extension):
@@ -64,35 +56,45 @@ def traducir_textos(nombre_sin_extension):
             for fila in lector:
                 registros.append(fila)
 
-        registros_originales = registros.copy()
-        indice_global = 0
-
-        bloques = agrupar_bloques_conversacion(registros)
         registros_traducidos = []
+        bloques = agrupar_bloques_conversacion(registros)
 
-        for personajes, lineas in bloques:
-            for idx, (personaje, tipo, texto) in enumerate(lineas):
+        if not bloques:
+            print("\u26a0\ufe0f No se detectaron bloques. Modo fallback activado (traducción línea por línea).")
+            for fila in registros:
+                id_linea, texto, personaje, tipo, nota = fila
                 if texto.lower().strip() in FRASES_OMITIBLES:
                     texto_traducido = texto
                 else:
-                    hablante = personaje
-                    receptor = lineas[idx + 1][0] if idx + 1 < len(lineas) else None
+                    sexo_hablante = PERSONAJES.get(personaje, {}).get("sexo", None)
+                    texto_traducido = traducir_texto_api(texto, sexo_hablante, None)
 
-                    sexo_hablante = PERSONAJES.get(hablante, {}).get("sexo", None)
-                    sexo_receptor = PERSONAJES.get(receptor, {}).get("sexo", None) if receptor else None
-
-                    texto_traducido = traducir_texto_api(texto, sexo_hablante, sexo_receptor)
-                    
                 texto_traducido = f'"{texto_traducido}"'
-                
-                id_linea = registros_originales[indice_global][0]
-                personaje_original = registros_originales[indice_global][2]
-                tipo_original = registros_originales[indice_global][3]
-                registros_traducidos.append([id_linea, texto_traducido, personaje_original, tipo_original, ""])
-
-                indice_global += 1
-
+                registros_traducidos.append([id_linea, texto_traducido, personaje, tipo, nota])
                 time.sleep(DELAY)
+        else:
+            registros_originales = registros.copy()
+            indice_global = 0
+            for personajes, lineas in bloques:
+                for idx, (personaje, tipo, texto) in enumerate(lineas):
+                    if texto.lower().strip() in FRASES_OMITIBLES:
+                        texto_traducido = texto
+                    else:
+                        hablante = personaje
+                        receptor = lineas[idx + 1][0] if idx + 1 < len(lineas) else None
+
+                        sexo_hablante = PERSONAJES.get(hablante, {}).get("sexo", None)
+                        sexo_receptor = PERSONAJES.get(receptor, {}).get("sexo", None) if receptor else None
+
+                        texto_traducido = traducir_texto_api(texto, sexo_hablante, sexo_receptor)
+
+                    texto_traducido = f'"{texto_traducido}"'
+                    id_linea = registros_originales[indice_global][0]
+                    personaje_original = registros_originales[indice_global][2]
+                    tipo_original = registros_originales[indice_global][3]
+                    registros_traducidos.append([id_linea, texto_traducido, personaje_original, tipo_original, ""])
+                    indice_global += 1
+                    time.sleep(DELAY)
 
         with open(ruta_csv_salida, "w", newline='', encoding="utf-8-sig") as csvfile:
             escritor = csv.writer(csvfile)
@@ -103,5 +105,5 @@ def traducir_textos(nombre_sin_extension):
         return nombre_sin_extension, len(registros_traducidos)
 
     except Exception as e:
-        print(f"🛑 Error en traducción global: {e}")
+        print(f"\U0001f6d1 Error en traducción global: {e}")
         return None, 0
