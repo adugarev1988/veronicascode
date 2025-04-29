@@ -325,7 +325,7 @@ PERSONAJES = {
     },
     "cou": { 
         "sexo": "femenino", 
-        "modo": "" 
+        "modo": "Hermana mayor, responsable, despreocupada" 
     },
     "mary": { 
         "sexo": "femenino", 
