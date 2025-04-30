@@ -10,55 +10,104 @@ modo_actual = MODELOS.get(MODO) or list(MODELOS.values())[0]
 
 from colorama import Fore, Style
 from datetime import timedelta
+import sys
+import re
+
+NOMBRE_CAMUFLAJE = "Zarphotron"
 
 def mostrar_progreso(i, total, inicio):
-    progreso = (i + 1) / total
+    progreso = min((i + 1) / total, 1.0)
+    if progreso == 0:
+        return
+    if i % max(1, total // 100) != 0 and i + 1 != total:
+        return
     tiempo_transcurrido = time.time() - inicio
-    tiempo_estimado_total = tiempo_transcurrido / progreso
+    tiempo_estimado_total = tiempo_transcurrido / progreso if progreso > 0 else 0
     tiempo_restante = tiempo_estimado_total - tiempo_transcurrido
-    eta_str = str(timedelta(seconds=int(tiempo_restante)))
-    print(f"⏳ Traduciendo: {Fore.MAGENTA}{progreso*100:.2f}%{Style.RESET_ALL} ({i + 1}/{total}) | ETA: {eta_str}")
+    eta_str = str(timedelta(seconds=int(max(0, tiempo_restante))))
+    barra = int(progreso * 30) * "█" + int((1 - progreso) * 30) * "─"
+    sys.stdout.write(f"\r⏳ {Fore.MAGENTA}[{barra}]{Style.RESET_ALL} {progreso*100:.2f}% ({min(i + 1, total)}/{total}) | ETA: {eta_str}   ")
+    sys.stdout.flush()
+    if i + 1 == total:
+        print()
+
+def obtener_datos_personaje(nombre):
+    info = PERSONAJES.get(nombre.lower(), {})
+    sexo = info.get("sexo", "indistinto")
+    modo = info.get("modo", "").strip()
+    return sexo, modo
+
+def restaurar_variables(texto):
+    return texto.replace(NOMBRE_CAMUFLAJE, "[name]")
+
+### AQUI SE CONSTRUYE EL PROMPT DE TRADUCCION, SIENTASE LIBRE DE MODIFICARLO PARA OBTENER MEJORES RESULTADOS ###
+
+def construir_prompt(texto, personaje, tipo, interlocutor=""):
+    texto = texto.replace("[name]", NOMBRE_CAMUFLAJE).replace("[nombre]", NOMBRE_CAMUFLAJE)
+    texto_instruccion = "Nunca traducir, modificar o agregar nada entre corchetes [], como [name], [nombre] etc. Déjalos exactamente donde están y sin cambios. No los omitas ni los reemplaces. Tampoco modifiques etiquetas de estilo como {color=#...}."
+
+    sexo, modo = obtener_datos_personaje(personaje)
+    sexo_receptor, _ = obtener_datos_personaje(interlocutor)
+
+    if personaje in {"mc", "mct"}:
+        texto_instruccion += " Este personaje es el protagonista masculino."
+
+    if tipo == "pensamiento":
+        if modo:
+            return f"Como experto en traducción, realiza una traducción natural al {IDIOMA_DESTINO} ajustandote siempre al genero y respetando frases coloquiales el pensamiento de un personaje de género {sexo} con estilo {modo}:{texto_instruccion} '{texto}'"
+        else:
+            return f"Como experto en traducción, realiza una traducción natural al {IDIOMA_DESTINO} ajustandote siempre al genero y respetando frases coloquiales el pensamiento de un personaje de género {sexo}:{texto_instruccion} '{texto}'"
+    else:
+        if modo:
+            return f"Como experto en traducción, realiza una traducción natural al {IDIOMA_DESTINO} ajustandote siempre al genero y respetando frases coloquiales esta frase dicha por un personaje de género {sexo} con estilo {modo} a un personaje de género {sexo_receptor}:{texto_instruccion} '{texto}'"
+        else:
+            return f"Como experto en traducción, realiza una traducción natural al {IDIOMA_DESTINO} ajustandote siempre al genero y respetando frases coloquiales esta frase dicha por un personaje de género {sexo} a un personaje de género {sexo_receptor}:{texto_instruccion} '{texto}'"
+
+def limpiar_traduccion(texto):
+    texto = texto.strip()
+    if (texto.startswith("'") and texto.endswith("'")) or (texto.startswith('"') and texto.endswith('"')):
+        texto = texto[1:-1].strip()
+    texto = restaurar_variables(texto)
+    return texto
 
 def traducir_bloques(bloques):
     resultados = []
+    total_lineas = sum(len(b) for b in bloques)
+    progreso_idx = 0
     inicio = time.time()
-    for idx, bloque in enumerate(bloques):
-        id_bloque = bloque[0][0] if bloque else ""
-        mensajes = []
+
+    for bloque in bloques:
+        personajes = [linea[2] for linea in bloque if linea[2]]
+        interlocutor = personajes[1] if len(set(personajes)) > 1 else ""
+
         for id_linea, texto, personaje, tipo, nota in bloque:
-            if personaje:
-                genero = PERSONAJES.get(personaje.lower(), "indistinto")
-                if tipo == "pensamiento":
-                    prompt = f"Traduce al {IDIOMA_DESTINO} el pensamiento de un personaje de género {genero}: '{texto}'"
-                else:
-                    prompt = f"Traduce al {IDIOMA_DESTINO} esta frase hablada por un personaje de género {genero}: '{texto}'"
+            if texto.strip().lower() in FRASES_OMITIBLES:
+                resultados.append([id_linea, texto, personaje, tipo, nota])
+                progreso_idx += 1
+                mostrar_progreso(progreso_idx, total_lineas, inicio)
+                continue
+
+            if not OPENAI_API_KEY:
+                traduccion = f"[{IDIOMA_DESTINO[:2].upper()}] {texto}"
             else:
-                prompt = f"Traduce al {IDIOMA_DESTINO}: '{texto}'"
-            mensajes.append({"role": "user", "content": prompt})
+                prompt = construir_prompt(texto, personaje, tipo, interlocutor)
+                try:
+                    respuesta = openai.ChatCompletion.create(
+                        model=modo_actual,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=TEMPERATURA,
+                        max_tokens=MAX_TOKENS,
+                    )
+                    traduccion = respuesta["choices"][0]["message"]["content"].strip()
+                    time.sleep(DELAY)
+                except Exception as e:
+                    print(f"\n🛑 Error traduciendo línea {id_linea}: {e}")
+                    traduccion = texto
 
-        if not OPENAI_API_KEY:
-            traducciones = [f"[{IDIOMA_DESTINO[:2].upper()}] {linea[1]}" for linea in bloque]
-        else:
-            try:
-                respuesta = openai.ChatCompletion.create(
-                    model=modo_actual,
-                    messages=mensajes,
-                    temperature=TEMPERATURA,
-                    max_tokens=MAX_TOKENS,
-                )
-                traducciones = [r["message"]["content"].strip() for r in respuesta["choices"]]
-                time.sleep(DELAY)
-            except Exception as e:
-                print(f"🛑 Error traduciendo bloque {id_bloque}: {e}")
-                traducciones = [linea[1] for linea in bloque]
-
-        for i, linea in enumerate(bloque):
-            if len(linea) == 5:
-                resultados.append([linea[0], traducciones[i], linea[2], linea[3], linea[4]])
-            else:
-                print(f"⚠️ Línea con formato inválido: {linea}")
-
-        mostrar_progreso(idx, len(bloques), inicio)
+            traduccion = limpiar_traduccion(traduccion)
+            resultados.append([id_linea, traduccion, personaje, tipo, nota])
+            progreso_idx += 1
+            mostrar_progreso(progreso_idx, total_lineas, inicio)
 
     return resultados
 
@@ -73,15 +122,7 @@ def traducir_individual(registros):
         if not OPENAI_API_KEY:
             traduccion = f"[{IDIOMA_DESTINO[:2].upper()}] {texto}"
         else:
-            if personaje:
-                genero = PERSONAJES.get(personaje.lower(), "indistinto")
-                if tipo == "pensamiento":
-                    prompt = f"Traduce al {IDIOMA_DESTINO} el pensamiento de un personaje de género {genero}: '{texto}'"
-                else:
-                    prompt = f"Traduce al {IDIOMA_DESTINO} esta frase hablada por un personaje de género {genero}: '{texto}'"
-            else:
-                prompt = f"Traduce al {IDIOMA_DESTINO}: '{texto}'"
-
+            prompt = construir_prompt(texto, personaje, tipo)
             try:
                 respuesta = openai.ChatCompletion.create(
                     model=modo_actual,
@@ -92,9 +133,10 @@ def traducir_individual(registros):
                 traduccion = respuesta["choices"][0]["message"]["content"].strip()
                 time.sleep(DELAY)
             except Exception as e:
-                print(f"🛑 Error traduciendo línea {id_linea}: {e}")
+                print(f"\n🛑 Error traduciendo línea {id_linea}: {e}")
                 traduccion = texto
 
+        traduccion = limpiar_traduccion(traduccion)
         resultados.append([id_linea, traduccion, personaje, tipo, nota])
         mostrar_progreso(idx, len(registros), inicio)
 
@@ -112,6 +154,7 @@ def traducir_textos(nombre_archivo):
             else:
                 print(f"⚠️ Fila ignorada (formato inválido): {fila}")
 
+    traducidos = []
     if TRADUCCION_CON_GENERO:
         bloques = []
         bloque_actual = []
@@ -125,13 +168,23 @@ def traducir_textos(nombre_archivo):
         if bloque_actual:
             bloques.append(bloque_actual)
         traducidos = traducir_bloques(bloques)
+
+        ids_traducidos = set(t[0] for t in traducidos)
+        restantes = [r for r in registros if r[0] not in ids_traducidos]
+        if restantes:
+            print(f"⚠️ {len(restantes)} líneas quedaron fuera de bloques. Se traducirán individualmente.")
+            traducidos_restantes = traducir_individual(restantes)
+            traducidos.extend(traducidos_restantes)
     else:
         traducidos = traducir_individual(registros)
+
+    diccionario_traducciones = {fila[0]: fila for fila in traducidos}
+    resultado_final = [diccionario_traducciones.get(f[0], f) for f in registros]
 
     ruta_salida = f"traducciones/{nombre_archivo}_traducido.csv"
     with open(ruta_salida, "w", encoding="utf-8-sig", newline='') as f:
         escritor = csv.writer(f)
         escritor.writerow(["ID", "Texto", "Personaje", "Tipo", "Nota"])
-        escritor.writerows(traducidos)
+        escritor.writerows(resultado_final)
 
-    return ruta_salida, len(traducidos)
+    return ruta_salida, len(resultado_final)

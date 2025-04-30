@@ -24,7 +24,7 @@ def extraer_textos(nombre_archivo):
 
         if perfil_detectado:
             nombre_extractor = perfil_detectado["extractor"]
-            descripcion = perfil_detectado.get("descripcion", "Sin descripción")
+            descripcion = perfil_detectado["descripcion"]
             extractor_func = getattr(extractores, nombre_extractor)
             print(f"🔹 Perfil detectado: {descripcion}")
             print(f"🔹 Usando extractor: {nombre_extractor}")
@@ -43,9 +43,9 @@ def extraer_textos(nombre_archivo):
 
         print("\n📊 Reporte de extracción:")
         print(f"🔹 Total líneas leídas: {total_lineas}")
-        print(f"🔹 Líneas útiles extraídas: {len(lineas_extraidas)}")
+        print(f"🔹 Dialogos extraídos: {len(lineas_extraidas)}")
         eficiencia = (len(lineas_extraidas) / total_lineas) * 100 if total_lineas > 0 else 0
-        print(f"🔹 Eficiencia de extracción: {eficiencia:.2f}%")
+        print(f"🔹 Porcentaje de dialogos: {eficiencia:.2f}%")
 
         return nombre_sin_extension, len(lineas_extraidas)
 
