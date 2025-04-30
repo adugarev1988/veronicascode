@@ -14,6 +14,7 @@ Es una máquina que no solo procesa palabras: **las entiende**.
 Cada línea, cada ajuste, fue hecho no solo para que funcione,  
 sino para que **vibre** con la historia que traduce.
 
+Simple: Traduce archivos .rpy de UoP a cualquier idioma usan OpenAI
 ---
 
 ## 📂 Estructura de proyecto
@@ -37,7 +38,6 @@ veronicas_code_1.0/
 │   └── (Archivos finales .rpy traducidos)
 ├── config.py
 ├── README.md
-└── (Mantras secretos y cartas ocultas… si quieres esconder uno)
 ```
 
 ---

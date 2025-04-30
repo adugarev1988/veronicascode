@@ -1,6 +1,6 @@
 # detector_conversaciones_v2.py
 # Módulo autónomo para detectar bloques de conversación (versión refinada)
-# Veronica's Code 2.0 - Respeto de saltos de tiempo, pensamientos, sistema.
+# Veronica's Code v1.1 - Respeto de saltos de tiempo, pensamientos, sistema.
 
 import os
 import csv

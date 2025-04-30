@@ -1,5 +1,5 @@
 # extractor/extractor_unificado_v2.py
-# Módulo de extracción inteligente para Veronica's Code Beta 1.1
+# Módulo de extracción inteligente para Veronica's Code v1.1
 
 import os
 import csv
