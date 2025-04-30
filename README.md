@@ -37,7 +37,7 @@ veronicas_code_1.0/
 ├── traducciones/
 │   └── (Archivos finales .rpy traducidos)
 ├── config.py
-├── README.md
+└── README.md
 ```
 
 ---
