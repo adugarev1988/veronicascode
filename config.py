@@ -24,7 +24,7 @@ DELAY = 1.2
 # - "Token Saver"       (gpt-3.5-turbo, barato y rápido)
 # - "Precision Blade"   (gpt-4-turbo, más costoso pero más preciso)
 # - "Instinto Veronica" (modo automático, el sistema elige)
-MODO = "Instinto Veronica"
+MODO = "Token Saver"
 
 # 🧠 Asociación de modo con modelo
 MODELOS = {
