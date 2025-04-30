@@ -1,109 +1,137 @@
-import openai
-import os
 import csv
+import os
 import time
 from config import OPENAI_API_KEY, MODELOS, MODO, IDIOMA_DESTINO, TEMPERATURA, MAX_TOKENS, DELAY, PERSONAJES, TRADUCCION_CON_GENERO, FRASES_OMITIBLES
-from detector.detector_conversaciones_v2 import agrupar_bloques_conversacion
+import openai
 
-def limpiar_comillas(texto):
-    return texto.strip().strip('"')
+openai.api_key = OPENAI_API_KEY
 
-def traducir_texto_api(texto_original, genero_hablante=None, genero_receptor=None):
-    try:
-        modelo = MODELOS.get(MODO, "gpt-3.5-turbo")
-        if modelo == "auto":
-            modelo = "gpt-3.5-turbo"
+modo_actual = MODELOS.get(MODO) or list(MODELOS.values())[0]
 
-        texto_limpio = limpiar_comillas(texto_original)
+from colorama import Fore, Style
+from datetime import timedelta
 
-        contexto = (f"Eres un traductor profesional especializado en narrativa literaria y diálogos emocionales.\n"
-                    f"Traduce de forma natural y fluida al {IDIOMA_DESTINO}.\n")
+def mostrar_progreso(i, total, inicio):
+    progreso = (i + 1) / total
+    tiempo_transcurrido = time.time() - inicio
+    tiempo_estimado_total = tiempo_transcurrido / progreso
+    tiempo_restante = tiempo_estimado_total - tiempo_transcurrido
+    eta_str = str(timedelta(seconds=int(tiempo_restante)))
+    print(f"⏳ Traduciendo: {Fore.MAGENTA}{progreso*100:.2f}%{Style.RESET_ALL} ({i + 1}/{total}) | ETA: {eta_str}")
 
-        if TRADUCCION_CON_GENERO and genero_hablante and genero_receptor:
-            contexto += (f"El hablante es {genero_hablante}, y se dirige a un {genero_receptor}.\n")
-
-        contexto += f"Texto: {texto_limpio}"
-
-        respuesta = openai.ChatCompletion.create(
-            model=modelo,
-            messages=[
-                {"role": "system", "content": "Eres un traductor experto, creativo y sensible al contexto emocional."},
-                {"role": "user", "content": contexto}
-            ],
-            temperature=TEMPERATURA,
-            max_tokens=MAX_TOKENS
-        )
-
-        return respuesta['choices'][0]['message']['content'].strip()
-
-    except Exception as e:
-        print(f"\U0001f6d1 Error traduciendo: {e}")
-        return f"[Error de traducción] {texto_original}"
-
-def traducir_textos(nombre_sin_extension):
-    try:
-        openai.api_key = OPENAI_API_KEY
-        ruta_csv_entrada = f"backup_base/{nombre_sin_extension}_traducir.csv"
-        ruta_csv_salida = f"traducciones/{nombre_sin_extension}_traducido.csv"
-
-        if not os.path.exists("traducciones"):
-            os.makedirs("traducciones")
-
-        registros = []
-        with open(ruta_csv_entrada, "r", encoding="utf-8-sig") as csvfile:
-            lector = csv.reader(csvfile)
-            next(lector)
-            for fila in lector:
-                registros.append(fila)
-
-        registros_traducidos = []
-        bloques = agrupar_bloques_conversacion(registros)
-
-        if not bloques:
-            print("\u26a0\ufe0f No se detectaron bloques. Modo fallback activado (traducción línea por línea).")
-            for fila in registros:
-                id_linea, texto, personaje, tipo, nota = fila
-                if texto.lower().strip() in FRASES_OMITIBLES:
-                    texto_traducido = texto
+def traducir_bloques(bloques):
+    resultados = []
+    inicio = time.time()
+    for idx, bloque in enumerate(bloques):
+        id_bloque = bloque[0][0] if bloque else ""
+        mensajes = []
+        for id_linea, texto, personaje, tipo, nota in bloque:
+            if personaje:
+                genero = PERSONAJES.get(personaje.lower(), "indistinto")
+                if tipo == "pensamiento":
+                    prompt = f"Traduce al {IDIOMA_DESTINO} el pensamiento de un personaje de género {genero}: '{texto}'"
                 else:
-                    sexo_hablante = PERSONAJES.get(personaje, {}).get("sexo", None)
-                    texto_traducido = traducir_texto_api(texto, sexo_hablante, None)
+                    prompt = f"Traduce al {IDIOMA_DESTINO} esta frase hablada por un personaje de género {genero}: '{texto}'"
+            else:
+                prompt = f"Traduce al {IDIOMA_DESTINO}: '{texto}'"
+            mensajes.append({"role": "user", "content": prompt})
 
-                texto_traducido = f'"{texto_traducido}"'
-                registros_traducidos.append([id_linea, texto_traducido, personaje, tipo, nota])
-                time.sleep(DELAY)
+        if not OPENAI_API_KEY:
+            traducciones = [f"[{IDIOMA_DESTINO[:2].upper()}] {linea[1]}" for linea in bloque]
         else:
-            registros_originales = registros.copy()
-            indice_global = 0
-            for personajes, lineas in bloques:
-                for idx, (personaje, tipo, texto) in enumerate(lineas):
-                    if texto.lower().strip() in FRASES_OMITIBLES:
-                        texto_traducido = texto
-                    else:
-                        hablante = personaje
-                        receptor = lineas[idx + 1][0] if idx + 1 < len(lineas) else None
+            try:
+                respuesta = openai.ChatCompletion.create(
+                    model=modo_actual,
+                    messages=mensajes,
+                    temperature=TEMPERATURA,
+                    max_tokens=MAX_TOKENS,
+                )
+                traducciones = [r["message"]["content"].strip() for r in respuesta["choices"]]
+                time.sleep(DELAY)
+            except Exception as e:
+                print(f"🛑 Error traduciendo bloque {id_bloque}: {e}")
+                traducciones = [linea[1] for linea in bloque]
 
-                        sexo_hablante = PERSONAJES.get(hablante, {}).get("sexo", None)
-                        sexo_receptor = PERSONAJES.get(receptor, {}).get("sexo", None) if receptor else None
+        for i, linea in enumerate(bloque):
+            if len(linea) == 5:
+                resultados.append([linea[0], traducciones[i], linea[2], linea[3], linea[4]])
+            else:
+                print(f"⚠️ Línea con formato inválido: {linea}")
 
-                        texto_traducido = traducir_texto_api(texto, sexo_hablante, sexo_receptor)
+        mostrar_progreso(idx, len(bloques), inicio)
 
-                    texto_traducido = f'"{texto_traducido}"'
-                    id_linea = registros_originales[indice_global][0]
-                    personaje_original = registros_originales[indice_global][2]
-                    tipo_original = registros_originales[indice_global][3]
-                    registros_traducidos.append([id_linea, texto_traducido, personaje_original, tipo_original, ""])
-                    indice_global += 1
-                    time.sleep(DELAY)
+    return resultados
 
-        with open(ruta_csv_salida, "w", newline='', encoding="utf-8-sig") as csvfile:
-            escritor = csv.writer(csvfile)
-            escritor.writerow(["ID", "Texto", "Personaje", "Tipo", "Nota"])
-            for registro in registros_traducidos:
-                escritor.writerow(registro)
+def traducir_individual(registros):
+    resultados = []
+    inicio = time.time()
+    for idx, (id_linea, texto, personaje, tipo, nota) in enumerate(registros):
+        if texto.strip().lower() in FRASES_OMITIBLES:
+            resultados.append([id_linea, texto, personaje, tipo, nota])
+            continue
 
-        return nombre_sin_extension, len(registros_traducidos)
+        if not OPENAI_API_KEY:
+            traduccion = f"[{IDIOMA_DESTINO[:2].upper()}] {texto}"
+        else:
+            if personaje:
+                genero = PERSONAJES.get(personaje.lower(), "indistinto")
+                if tipo == "pensamiento":
+                    prompt = f"Traduce al {IDIOMA_DESTINO} el pensamiento de un personaje de género {genero}: '{texto}'"
+                else:
+                    prompt = f"Traduce al {IDIOMA_DESTINO} esta frase hablada por un personaje de género {genero}: '{texto}'"
+            else:
+                prompt = f"Traduce al {IDIOMA_DESTINO}: '{texto}'"
 
-    except Exception as e:
-        print(f"\U0001f6d1 Error en traducción global: {e}")
-        return None, 0
+            try:
+                respuesta = openai.ChatCompletion.create(
+                    model=modo_actual,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=TEMPERATURA,
+                    max_tokens=MAX_TOKENS,
+                )
+                traduccion = respuesta["choices"][0]["message"]["content"].strip()
+                time.sleep(DELAY)
+            except Exception as e:
+                print(f"🛑 Error traduciendo línea {id_linea}: {e}")
+                traduccion = texto
+
+        resultados.append([id_linea, traduccion, personaje, tipo, nota])
+        mostrar_progreso(idx, len(registros), inicio)
+
+    return resultados
+
+def traducir_textos(nombre_archivo):
+    ruta_csv = f"backup_base/{nombre_archivo}_traducir.csv"
+    registros = []
+    with open(ruta_csv, "r", encoding="utf-8-sig") as f:
+        lector = csv.reader(f)
+        next(lector)
+        for fila in lector:
+            if len(fila) == 5:
+                registros.append(fila)
+            else:
+                print(f"⚠️ Fila ignorada (formato inválido): {fila}")
+
+    if TRADUCCION_CON_GENERO:
+        bloques = []
+        bloque_actual = []
+        for reg in registros:
+            if reg[1].strip().lower() in FRASES_OMITIBLES:
+                continue
+            if bloque_actual and reg[2] != bloque_actual[-1][2]:
+                bloques.append(bloque_actual)
+                bloque_actual = []
+            bloque_actual.append(reg)
+        if bloque_actual:
+            bloques.append(bloque_actual)
+        traducidos = traducir_bloques(bloques)
+    else:
+        traducidos = traducir_individual(registros)
+
+    ruta_salida = f"traducciones/{nombre_archivo}_traducido.csv"
+    with open(ruta_salida, "w", encoding="utf-8-sig", newline='') as f:
+        escritor = csv.writer(f)
+        escritor.writerow(["ID", "Texto", "Personaje", "Tipo", "Nota"])
+        escritor.writerows(traducidos)
+
+    return ruta_salida, len(traducidos)

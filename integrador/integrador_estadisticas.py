@@ -1,57 +1,61 @@
-# integrador/integrador_estadisticas.py
-# Módulo de integración para Veronica's Code Beta 1.1
-# Ensambla backup base + traducciones en .rpy final
-
 import os
 import csv
+import re
 
-def reintegrar_traducciones(nombre_sin_extension):
-    try:
-        ruta_backup = f"backup_base/{nombre_sin_extension}_base_con_marcas.rpy"
-        ruta_csv_traduccion = f"traducciones/{nombre_sin_extension}_traducido.csv"
-        ruta_salida = f"traducciones/{nombre_sin_extension}_final.rpy"
+CARPETA_BASE = "backup_base"
+CARPETA_TRADUCIDA = "traducciones"
 
-        # Confirmar existencia de archivos
-        if not os.path.exists(ruta_backup):
-            print(f"🛑 Archivo de backup no encontrado: {ruta_backup}")
-            return False
-        if not os.path.exists(ruta_csv_traduccion):
-            print(f"🛑 Archivo de traducciones no encontrado: {ruta_csv_traduccion}")
-            return False
+def reintegrar_traducciones(nombre_archivo):
+    base_path = os.path.join(CARPETA_BASE, f"{nombre_archivo}_base_con_marcas.rpy")
+    traducido_path = os.path.join(CARPETA_TRADUCIDA, f"{nombre_archivo}_traducido.csv")
+    traducir_path = os.path.join(CARPETA_BASE, f"{nombre_archivo}_traducir.csv")
+    salida_path = os.path.join(CARPETA_TRADUCIDA, f"{nombre_archivo}_traducido_es.rpy")
 
-        # Cargar traducciones en un diccionario
-        traducciones = {}
-
-        with open(ruta_csv_traduccion, "r", encoding="utf-8-sig") as csvfile:
-            lector = csv.DictReader(csvfile)
-            for fila in lector:
-                id_linea = fila["ID"]
-                texto_traducido = fila["Texto"]
-                traducciones[id_linea] = texto_traducido
-
-        # Leer backup y reemplazar
-        lineas_finales = []
-        with open(ruta_backup, "r", encoding="utf-8-sig") as f_in:
-            for linea in f_in:
-                if "(# L" in linea:
-                    match = os.path.splitext(linea)[0].split("(# L")[-1].split(")")[0]
-                    id_detectado = f"L{match}"
-                    if id_detectado in traducciones:
-                        linea_modificada = linea.replace(f"(# {id_detectado})", traducciones[id_detectado])
-                        lineas_finales.append(linea_modificada)
-                    else:
-                        lineas_finales.append(linea)
-                else:
-                    lineas_finales.append(linea)
-
-        # Guardar archivo final .rpy
-        with open(ruta_salida, "w", encoding="utf-8-sig") as f_out:
-            for linea in lineas_finales:
-                f_out.write(linea)
-
-        print(f"\n✅ Archivo final generado: {ruta_salida}")
-        return True
-
-    except Exception as e:
-        print(f"🛑 Error en reintegrar_traducciones: {e}")
+    if not os.path.exists(base_path):
+        print(f"🛑 Archivo base no encontrado: {base_path}")
         return False
+    if not os.path.exists(traducido_path):
+        print(f"🛑 Archivo traducido no encontrado: {traducido_path}")
+        return False
+    if not os.path.exists(traducir_path):
+        print(f"🛑 Archivo original de traducción no encontrado: {traducir_path}")
+        return False
+
+    with open(traducido_path, encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        traducciones = {row["ID"]: row["Texto"] for row in reader}
+
+    with open(traducir_path, encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        originales = {row["ID"]: row["Texto"] for row in reader}
+
+    faltantes = set(originales.keys()) - set(traducciones.keys())
+    if faltantes:
+        print(f"⚠️ {len(faltantes)} líneas no fueron traducidas, se usará el texto original.")
+
+    with open(base_path, encoding="utf-8-sig") as f:
+        lineas = f.readlines()
+
+    salida = []
+    for linea in lineas:
+        match = re.search(r'\(#\s*(L\d{4})\)', linea)
+        if match:
+            id_ = match.group(1)
+            texto = traducciones.get(id_, originales.get(id_, ""))
+            if texto.strip():
+                linea_nueva = re.sub(r'\(#\s*' + re.escape(id_) + r'\)', f'"{texto}"', linea)
+            else:
+                print(f"⚠️ Línea {id_} tiene texto vacío. Se usará texto original.")
+                texto_original = originales.get(id_, f"[{id_}]")
+                linea_nueva = re.sub(r'\(#\s*' + re.escape(id_) + r'\)', f'"{texto_original}"', linea)
+            salida.append(linea_nueva)
+        else:
+            salida.append(linea)
+
+    os.makedirs(CARPETA_TRADUCIDA, exist_ok=True)
+    with open(salida_path, "w", encoding="utf-8-sig") as f:
+        for linea in salida:
+            f.write(linea)
+
+    print(f"✅ Archivo final generado: {salida_path}")
+    return True
