@@ -14,7 +14,7 @@ Es una máquina que no solo procesa palabras: **las entiende**.
 Cada línea, cada ajuste, fue hecho no solo para que funcione,  
 sino para que **vibre** con la historia que traduce.
 
-Simple: Traduce archivos .rpy de UoP a cualquier idioma usan OpenAI
+Simple: Traduce archivos .rpy de UoP a cualquier idioma usando OpenAI
 ---
 
 ## 📂 Estructura de proyecto
