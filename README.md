@@ -98,9 +98,7 @@ Haz un fork, envía un Pull Request, o simplemente ven a caminar con nosotros.
 ## 📜 Licencia
 
 **MIT License**  
-Usa, modifica, comparte.  
-Pero nunca olvides:  
-lo que fue hecho con alma, debe tratarse con alma.
+Usa, modifica, comparte. 
 
 ---
 
