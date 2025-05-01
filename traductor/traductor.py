@@ -44,7 +44,7 @@ def restaurar_variables(texto):
 
 def construir_prompt(texto, personaje, tipo, interlocutor=""):
     texto = texto.replace("[name]", NOMBRE_CAMUFLAJE).replace("[nombre]", NOMBRE_CAMUFLAJE)
-    texto_instruccion = "Nunca traducir, modificar o agregar nada entre corchetes [], como [name], [nombre] etc. Déjalos exactamente donde están y sin cambios. No los omitas ni los reemplaces. Tampoco modifiques etiquetas de estilo como {color=#...}."
+    texto_instruccion = "cuando sea una sola palabra devuelve la traduccion exacta sin mas adornos, cuando se hable de Zarphotron siempre sera masculino y nunca modifiques etiquetas de estilo como {color=#...}."
 
     sexo, modo = obtener_datos_personaje(personaje)
     sexo_receptor, _ = obtener_datos_personaje(interlocutor)
@@ -54,14 +54,14 @@ def construir_prompt(texto, personaje, tipo, interlocutor=""):
 
     if tipo == "pensamiento":
         if modo:
-            return f"Como experto en traducción, realiza una traducción natural al {IDIOMA_DESTINO} ajustandote siempre al genero y respetando frases coloquiales el pensamiento de un personaje de género {sexo} con estilo {modo}:{texto_instruccion} '{texto}'"
+            return f"Realiza una traducción natural y literal al {IDIOMA_DESTINO} ajustandote siempre al genero y respetando frases coloquiales el pensamiento de un personaje de género {sexo} con estilo {modo} {texto_instruccion}: '{texto}'"
         else:
-            return f"Como experto en traducción, realiza una traducción natural al {IDIOMA_DESTINO} ajustandote siempre al genero y respetando frases coloquiales el pensamiento de un personaje de género {sexo}:{texto_instruccion} '{texto}'"
+            return f"Realiza una traducción natural y literal al {IDIOMA_DESTINO} ajustandote siempre al genero y respetando frases coloquiales el pensamiento de un personaje de género {sexo} {texto_instruccion}: '{texto}'"
     else:
         if modo:
-            return f"Como experto en traducción, realiza una traducción natural al {IDIOMA_DESTINO} ajustandote siempre al genero y respetando frases coloquiales esta frase dicha por un personaje de género {sexo} con estilo {modo} a un personaje de género {sexo_receptor}:{texto_instruccion} '{texto}'"
+            return f"Realiza una traducción natural y literal al {IDIOMA_DESTINO} ajustandote siempre al genero y respetando frases coloquiales de este frase dicha por un personaje de género {sexo} con estilo {modo} a un personaje de género {sexo_receptor} {texto_instruccion}: '{texto}'"
         else:
-            return f"Como experto en traducción, realiza una traducción natural al {IDIOMA_DESTINO} ajustandote siempre al genero y respetando frases coloquiales esta frase dicha por un personaje de género {sexo} a un personaje de género {sexo_receptor}:{texto_instruccion} '{texto}'"
+            return f"Realiza una traducción natural y literal al {IDIOMA_DESTINO} ajustandote siempre al genero y respetando frases coloquiales de esta frase dicha por un personaje de género {sexo} a un personaje de género {sexo_receptor} {texto_instruccion}: '{texto}'"
 
 def limpiar_traduccion(texto):
     texto = texto.strip()
